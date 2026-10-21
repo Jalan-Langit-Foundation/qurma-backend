@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException; // <--- 1. Tambahkan import ini di atas
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,7 +17,18 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Memastikan request ke API selalu dibalas dengan JSON
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Custom format response 401 sesuai API Contract
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Belum login',
+                ], 401);
+            }
+        });
     })->create();
