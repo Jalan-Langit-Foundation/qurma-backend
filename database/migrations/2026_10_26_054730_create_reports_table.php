@@ -10,15 +10,18 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('reports', function (Blueprint $table) {
-    $table->id();
-    $table->foreignId('saving_id')->unique()->constrained()->cascadeOnDelete();
-    $table->text('notes')->nullable();
-    $table->timestamp('published_at')->nullable();
-    $table->timestamps();
-});
-    }
+{
+    Schema::create('reports', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('fulfillment_id')->constrained()->cascadeOnDelete();
+        $table->text('notes')->nullable();
+        $table->string('animal_photo')->nullable();
+        $table->string('slaughter_photo')->nullable();
+        $table->string('distribution_photo')->nullable();
+        $table->timestamp('published_at')->nullable();
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.

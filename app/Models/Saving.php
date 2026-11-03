@@ -50,5 +50,9 @@ class Saving extends Model
     if ($status !== $this->status) {
         $this->update(['status' => $status]);
     }
+
+    if ($status === 'completed') {
+        $this->fulfillment()->firstOrCreate([], ['status' => 'animal_preparing']);
+    }
 }
 }
