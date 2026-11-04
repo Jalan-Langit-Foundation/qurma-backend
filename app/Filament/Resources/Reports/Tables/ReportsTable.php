@@ -24,10 +24,11 @@ class ReportsTable
                     ->label('Foto'),
 
                 TextColumn::make('status')
-                    ->state(fn ($record) => $record->published_at ? 'Dipublikasikan' : 'Draf')
+                    ->label('Status')
                     ->badge()
-                    ->color(fn ($state) => $state === 'Dipublikasikan' ? 'success' : 'gray'),
-
+                    ->color(fn ($record): string => $record->isPublished() ? 'success' : ($record->published_at ? 'warning' : 'gray'))
+                    ->formatStateUsing(fn ($record): string => $record->isPublished() ? 'Dipublikasikan' : ($record->published_at ? 'Terjadwal' : 'Draf')),
+                    
                 TextColumn::make('published_at')
                     ->label('Tanggal publish')
                     ->dateTime('d M Y H:i'),

@@ -77,6 +77,12 @@ class SavingCalculator
         $nextRow   = $schedule->first(fn ($row) => $row['remaining_amount'] > 0);
         $progress  = $target > 0 ? min(100, intdiv($totalPaid * 100, $target)) : 0;
 
+        // Hitung total setoran khusus bulan ini
+        $currentMonth = now()->format('Y-m');
+        $paidThisMonth = (int) $saving->deposits()
+            ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
+            ->sum('amount');
+
         $status = match (true) {
             $saving->status === 'cancelled'      => 'cancelled',
             $totalPaid >= $target                => 'completed',
@@ -96,6 +102,7 @@ class SavingCalculator
             'status'                  => $status,
             'target_amount'           => $target,
             'total_paid'              => $totalPaid,
+            'paid_this_month'         => $paidThisMonth,
             'remaining_amount'        => max(0, $target - $totalPaid),
             'progress_percent'        => $progress,
             'tenor_months'            => $tenor,
@@ -113,7 +120,7 @@ class SavingCalculator
                 'target_reached'  => $totalPaid >= $target,
                 'animal_prepared' => in_array($fulfillment, ['verifying', 'waiting_execution', 'executed'], true),
                 'qurban_done'     => $fulfillment === 'executed',
-                'report_received' => $saving->report?->published_at !== null,
+                'report_received' => $saving->report?->isPublished() ?? false,
             ],
         ];
     }

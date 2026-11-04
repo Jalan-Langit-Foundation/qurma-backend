@@ -24,7 +24,9 @@ class ReportController extends Controller
 
         $report = $saving->report;
 
-        if (! $report || $report->published_at === null) {
+        $report = $saving->report;
+
+        if (! $report || ! $report->isPublished()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Laporan belum tersedia',
@@ -32,6 +34,7 @@ class ReportController extends Controller
         }
 
         $fulfillment = $saving->fulfillment;
+
         $photos      = $report->photos->groupBy('type');
 
         $group = fn (string $type) => ($photos[$type] ?? collect())

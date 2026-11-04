@@ -23,4 +23,9 @@ class Report extends Model
     {
         return $this->hasMany(ReportPhoto::class);
     }
+
+    public function isPublished(): bool
+{
+    return $this->published_at !== null && $this->published_at->lte(now());
+}
 }

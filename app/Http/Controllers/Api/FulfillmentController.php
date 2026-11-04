@@ -49,7 +49,7 @@ class FulfillmentController extends Controller
         $fulfillment = $saving->fulfillment;
         $status      = $fulfillment?->status ?? 'animal_preparing';
         $level       = self::LEVEL[$status] ?? 0;
-        $published   = $saving->report?->published_at !== null;
+        $published = $saving->report?->isPublished() ?? false;
 
         return $this->respond([
             'saving_id' => $saving->id,

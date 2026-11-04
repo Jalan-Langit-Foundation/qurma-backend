@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\SavingController;
 use App\Http\Controllers\Api\DepositController;
 use App\Http\Controllers\Api\FulfillmentController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\UserDashboardController;
 
 // Endpoint Publik
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -24,4 +26,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Shohibul Report (Masuk ke dalam auth agar $request->user() aman)
     Route::get('savings/{id}/report', [ReportController::class, 'show'])->whereNumber('id');
+
+    // transaksi
+    Route::get('/transactions', [TransactionController::class, 'index'])->middleware('auth:sanctum');
+
+    //dashboard
+    Route::middleware('auth:sanctum')->get('/user/dashboard', [UserDashboardController::class, 'index']);
 });
