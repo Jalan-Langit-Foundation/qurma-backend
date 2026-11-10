@@ -18,6 +18,19 @@ class Saving extends Model
         'start_month' => 'date',
     ];
 
+    protected static function booted(): void
+    {
+        // Target selalu diambil dari config paket saat tabungan dibuat,
+        // apa pun cara pembuatannya (API, panel admin, atau tinker).
+        static::creating(function (Saving $saving) {
+            $price = config("qurma.packages.{$saving->package_code}.price");
+
+            if ($price !== null) {
+                $saving->target_amount = $price;
+            }
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -39,20 +52,20 @@ class Saving extends Model
     }
 
     public function refreshStatus(): void
-{
-    if ($this->status === 'cancelled') {
-        return;
-    }
+    {
+        if ($this->status === 'cancelled') {
+            return;
+        }
 
-    $paid   = (int) $this->deposits()->sum('amount');
-    $status = $paid >= $this->target_amount ? 'completed' : 'active';
+        $paid   = (int) $this->deposits()->sum('amount');
+        $status = $paid >= $this->target_amount ? 'completed' : 'active';
 
-    if ($status !== $this->status) {
-        $this->update(['status' => $status]);
-    }
+        if ($status !== $this->status) {
+            $this->update(['status' => $status]);
+        }
 
-    if ($status === 'completed') {
-        $this->fulfillment()->firstOrCreate([], ['status' => 'animal_preparing']);
+        if ($status === 'completed') {
+            $this->fulfillment()->firstOrCreate([], ['status' => 'animal_preparing']);
+        }
     }
-}
 }

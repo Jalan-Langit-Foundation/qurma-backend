@@ -15,7 +15,9 @@ class SavingForm
     {
         $packages = collect(config('qurma.packages'))
             ->mapWithKeys(fn ($p, $code) => [
-                $code => $p['name'] . ' - Rp' . number_format($p['price'], 0, ',', '.'),
+                $code => $p['name']
+                    . ' - Rp' . number_format($p['price'], 0, ',', '.')
+                    . ' (' . $p['weight_min'] . '–' . $p['weight_max'] . ' kg)',
             ])
             ->all();
 
@@ -35,23 +37,30 @@ class SavingForm
                 Select::make('package_code')
                     ->label('Paket')
                     ->options($packages)
+                    ->live()
+                    ->afterStateUpdated(fn ($state, $set) => $set(
+                        'target_amount',
+                        config("qurma.packages.$state.price")
+                    ))
+                    ->helperText('Loyalty khusus mudhohi QURMA 2026 (diverifikasi manual oleh admin).')
                     ->required(),
 
                 TextInput::make('target_amount')
                     ->label('Target (Rp)')
                     ->numeric()
-                    ->disabled()
+                    ->readOnly()
                     ->dehydrated(false)
-                    ->hiddenOn('create'),
+                    ->helperText('Terisi otomatis dari paket, tidak bisa diketik.'),
 
                 DatePicker::make('start_month')
-    ->label('Bulan Mulai')
-    ->native(false)
-    ->displayFormat('F Y')
-    ->dehydrateStateUsing(
-        fn ($state) => $state ? \Carbon\Carbon::parse($state)->startOfMonth()->toDateString() : null
-    )
-    ->required(),
+                    ->label('Bulan mulai')
+                    ->native(false)
+                    ->displayFormat('F Y')
+                    ->default(now()->startOfMonth())
+                    ->dehydrateStateUsing(
+                        fn ($state) => $state ? Carbon::parse($state)->startOfMonth()->toDateString() : null
+                    )
+                    ->required(),
 
                 TextInput::make('tenor_months')
                     ->label('Tenor (bulan)')
@@ -75,6 +84,7 @@ class SavingForm
                         'cancelled' => 'Dibatalkan',
                     ])
                     ->default('active')
+                    ->helperText('Status Lunas diatur otomatis dari total setoran. Pakai Dibatalkan untuk membatalkan tabungan.')
                     ->required(),
             ]);
     }

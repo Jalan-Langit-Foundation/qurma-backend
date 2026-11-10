@@ -124,4 +124,21 @@ class SavingCalculator
             ],
         ];
     }
+
+    /** Status tanpa query tambahan, pakai total setoran yang sudah dihitung. */
+public function statusFor(Saving $saving, int $totalPaid): string
+{
+    if ($saving->status === 'cancelled') {
+        return 'cancelled';
+    }
+
+    if ($totalPaid >= (int) $saving->target_amount) {
+        return 'completed';
+    }
+
+    return collect($this->schedule($saving, $totalPaid))->contains('status', 'overdue')
+        ? 'overdue'
+        : 'active';
+}
+
 }
