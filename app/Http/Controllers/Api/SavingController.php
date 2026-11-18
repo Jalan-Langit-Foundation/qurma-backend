@@ -31,7 +31,7 @@ class SavingController extends Controller
         $saving = $user->savings()->create([
             'package_code'  => $data['package_code'],
             'target_amount' => config("qurma.packages.{$data['package_code']}.price"),
-            'tenor_months'  => $data['tenor_months'] ?? config('qurma.default_tenor'),
+            'tenor_months'  => $data['tenor_months'] ?? $this->calculator->defaultTenor($data['start_month']),
             'start_month'   => Carbon::createFromFormat('!Y-m', $data['start_month'])->toDateString(),
             'program_year'  => config('qurma.program_year'),
             'status'        => 'active',

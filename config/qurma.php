@@ -1,9 +1,10 @@
 <?php
 
 return [
-    'program_year'  => 2027,
-    'default_tenor' => 7,
-    'rounding'      => 5000,
+    'program_year'   => 2027,
+    'default_tenor'  => 7,
+    'deadline_month' => '2027-04', // bulan terakhir cicilan boleh jatuh (masih menunggu konfirmasi Kang Abay)
+    'rounding'       => 5000,
 
     // Sumber: Blueprint Tabungan Qurban QURMA 2027.
     // Harga dan bobot masih "working architecture" sampai quotation vendor final.

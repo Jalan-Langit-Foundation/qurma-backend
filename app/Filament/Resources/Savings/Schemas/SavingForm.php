@@ -21,6 +21,8 @@ class SavingForm
             ])
             ->all();
 
+        $year = (int) config('qurma.program_year');
+
         return $schema
             ->components([
                 Select::make('user_id')
@@ -68,12 +70,13 @@ class SavingForm
                     ->minValue(1)
                     ->maxValue(12)
                     ->default(config('qurma.default_tenor'))
+                    ->helperText('Cicilan terakhir tidak boleh melewati batas pelunasan program.')
                     ->required(),
 
-                TextInput::make('program_year')
+                Select::make('program_year')
                     ->label('Tahun program')
-                    ->numeric()
-                    ->default(config('qurma.program_year'))
+                    ->options([$year => (string) $year])
+                    ->default($year)
                     ->required(),
 
                 Select::make('status')

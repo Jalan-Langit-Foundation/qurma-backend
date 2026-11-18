@@ -19,6 +19,51 @@ class SavingCalculator
         return max(0, $target - $this->monthlyAmount($target, $tenor) * ($tenor - 1));
     }
 
+        /** Nama bulan batas pelunasan, misalnya "April 2027". */
+    public function deadlineLabel(): string
+    {
+        $names = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+        $deadline = Carbon::createFromFormat('!Y-m', config('qurma.deadline_month'));
+
+        return $names[$deadline->month] . ' ' . $deadline->year;
+    }
+
+    /** Tenor maksimal agar cicilan terakhir tidak melewati batas pelunasan. 0 = bulan mulai sudah lewat batas. */
+    public function maxTenor(string $startMonth): int
+    {
+        $start    = Carbon::createFromFormat('!Y-m', $startMonth);
+        $deadline = Carbon::createFromFormat('!Y-m', config('qurma.deadline_month'));
+
+        $months = ($deadline->year - $start->year) * 12 + ($deadline->month - $start->month) + 1;
+
+        return max(0, min(12, $months));
+    }
+
+    /** Tenor default: 7 bulan, atau lebih pendek kalau sisa waktu sampai batas pelunasan kurang dari itu. */
+    public function defaultTenor(string $startMonth): int
+    {
+        return min((int) config('qurma.default_tenor', 7), $this->maxTenor($startMonth));
+    }
+
+    public function startMonthError(string $startMonth): ?string
+    {
+        return $this->maxTenor($startMonth) < 1
+            ? 'Bulan mulai tidak boleh setelah batas pelunasan program (' . $this->deadlineLabel() . ')'
+            : null;
+    }
+
+    public function tenorError(string $startMonth, int $tenor): ?string
+    {
+        $max = $this->maxTenor($startMonth);
+
+        return ($max >= 1 && $tenor > $max)
+            ? "Lama menabung maksimal {$max} bulan agar lunas paling lambat " . $this->deadlineLabel()
+            : null;
+    }
+
     /** Jadwal setoran per bulan, total setoran dialokasikan berurutan dari cicilan pertama. */
     public function schedule(Saving $saving, int $totalPaid): array
     {
@@ -77,17 +122,19 @@ class SavingCalculator
         $nextRow   = $schedule->first(fn ($row) => $row['remaining_amount'] > 0);
         $progress  = $target > 0 ? min(100, intdiv($totalPaid * 100, $target)) : 0;
 
-        // Hitung total setoran khusus bulan ini
-        $currentMonth = now()->format('Y-m');
+        // Total setoran yang diterima bulan ini (berdasarkan tanggal setor, bukan tanggal input)
         $paidThisMonth = (int) $saving->deposits()
-            ->whereRaw("DATE_FORMAT(created_at, '%Y-%m') = ?", [$currentMonth])
+            ->whereBetween('paid_at', [
+                now()->startOfMonth()->toDateString(),
+                now()->endOfMonth()->toDateString(),
+            ])
             ->sum('amount');
 
         $status = match (true) {
-            $saving->status === 'cancelled'      => 'cancelled',
-            $totalPaid >= $target                => 'completed',
+            $saving->status === 'cancelled'          => 'cancelled',
+            $totalPaid >= $target                    => 'completed',
             $schedule->contains('status', 'overdue') => 'overdue',
-            default                              => 'active',
+            default                                  => 'active',
         };
 
         $fulfillment = $saving->fulfillment?->status;
@@ -126,19 +173,18 @@ class SavingCalculator
     }
 
     /** Status tanpa query tambahan, pakai total setoran yang sudah dihitung. */
-public function statusFor(Saving $saving, int $totalPaid): string
-{
-    if ($saving->status === 'cancelled') {
-        return 'cancelled';
+    public function statusFor(Saving $saving, int $totalPaid): string
+    {
+        if ($saving->status === 'cancelled') {
+            return 'cancelled';
+        }
+
+        if ($totalPaid >= (int) $saving->target_amount) {
+            return 'completed';
+        }
+
+        return collect($this->schedule($saving, $totalPaid))->contains('status', 'overdue')
+            ? 'overdue'
+            : 'active';
     }
-
-    if ($totalPaid >= (int) $saving->target_amount) {
-        return 'completed';
-    }
-
-    return collect($this->schedule($saving, $totalPaid))->contains('status', 'overdue')
-        ? 'overdue'
-        : 'active';
-}
-
 }
