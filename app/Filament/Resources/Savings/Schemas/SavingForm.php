@@ -44,7 +44,6 @@ class SavingForm
                         'target_amount',
                         config("qurma.packages.$state.price")
                     ))
-                    ->helperText('Loyalty khusus mudhohi QURMA 2026 (diverifikasi manual oleh admin).')
                     ->required(),
 
                 TextInput::make('target_amount')

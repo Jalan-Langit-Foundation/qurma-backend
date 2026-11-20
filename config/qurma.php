@@ -3,15 +3,13 @@
 return [
     'program_year'   => 2027,
     'default_tenor'  => 7,
-    'deadline_month' => '2027-04', // bulan terakhir cicilan boleh jatuh (masih menunggu konfirmasi Kang Abay)
+    'deadline_month' => '2027-04', // SEMENTARA, diganti pengaturan admin di langkah B
     'rounding'       => 5000,
 
-    // Sumber: Blueprint Tabungan Qurban QURMA 2027.
-    // Harga dan bobot masih "working architecture" sampai quotation vendor final.
+    // Harga final dari Kang Abay (17 Nov 2026). Bobot dari draft Brief Revisi V0.2 (belum dikonfirmasi).
     'packages' => [
-        'loyalty' => ['name' => 'Loyalty', 'price' => 1500000, 'weight_min' => 20, 'weight_max' => 22, 'loyalty_only' => true],
-        'start'   => ['name' => 'Start',   'price' => 1900000, 'weight_min' => 23, 'weight_max' => 25, 'recommended' => true],
-        'plus'    => ['name' => 'Plus',    'price' => 2500000, 'weight_min' => 26, 'weight_max' => 28],
-        'premium' => ['name' => 'Premium', 'price' => 2990000, 'weight_min' => 29, 'weight_max' => 34],
+        'standar' => ['name' => 'Domba Standar', 'price' => 1600000, 'weight_min' => 20, 'weight_max' => 25],
+        'medium'  => ['name' => 'Domba Medium',  'price' => 2200000, 'weight_min' => 26, 'weight_max' => 29],
+        'premium' => ['name' => 'Domba Premium', 'price' => 2990000, 'weight_min' => 30, 'weight_max' => 35],
     ],
 ];
