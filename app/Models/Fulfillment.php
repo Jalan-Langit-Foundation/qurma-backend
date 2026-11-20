@@ -17,8 +17,9 @@ class Fulfillment extends Model
     ];
 
 
-    public function parentSaving()
+    public function parentSaving(): BelongsTo
 {
     return $this->belongsTo(Saving::class, 'saving_id');
 }
+
 }
