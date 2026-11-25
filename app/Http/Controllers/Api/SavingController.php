@@ -17,6 +17,14 @@ class SavingController extends Controller
 
     public function store(StoreSavingRequest $request): JsonResponse
     {
+        if (! $this->calculator->registrationOpen()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pendaftaran Tabungan Qurban sudah ditutup (batas pendaftaran: '
+                    . $this->calculator->registrationDeadlineLabel() . ')',
+            ], 403);
+        }
+
         $user = $request->user();
 
         if ($user->savings()->where('status', 'active')->exists()) {

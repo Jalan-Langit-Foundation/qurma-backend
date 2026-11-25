@@ -2,42 +2,81 @@
 
 namespace App\Services;
 
+use App\Models\ProgramSetting;
 use App\Models\Saving;
 use Carbon\Carbon;
 
 class SavingCalculator
 {
-    public function monthlyAmount(int $target, int $tenor): int
-    {
-        $rounding = (int) config('qurma.rounding', 5000);
+    private ?ProgramSetting $settings = null;
 
-        return (int) (ceil($target / $tenor / $rounding) * $rounding);
+    public function settings(): ProgramSetting
+    {
+        return $this->settings ??= ProgramSetting::current();
     }
 
-    public function lastInstallment(int $target, int $tenor): int
+    // ---------- Pengaturan program ----------
+
+    /** Tanggal Idul Adha: resmi dari admin, atau perkiraan dari config kalau belum diisi. */
+    public function idulAdhaDate(): Carbon
     {
-        return max(0, $target - $this->monthlyAmount($target, $tenor) * ($tenor - 1));
+        return Carbon::parse($this->settings()->idul_adha_date ?? config('qurma.idul_adha_estimate'))->startOfDay();
     }
 
-        /** Nama bulan batas pelunasan, misalnya "April 2027". */
-    public function deadlineLabel(): string
+    /** Batas pelunasan = H-(payoff_lead_days) sebelum Idul Adha. */
+    public function payoffDeadline(): Carbon
+    {
+        return $this->idulAdhaDate()->copy()->subDays((int) $this->settings()->payoff_lead_days);
+    }
+
+    public function registrationDeadline(): Carbon
+    {
+        return Carbon::parse($this->settings()->registration_deadline)->endOfDay();
+    }
+
+    public function registrationOpen(): bool
+    {
+        return now()->lte($this->registrationDeadline());
+    }
+
+    /** Bulan (YYYY-MM) terakhir yang boleh dipakai cicilan. */
+    public function lastInstallmentMonth(): string
+    {
+        $deadline = $this->payoffDeadline();
+
+        return $this->settings()->last_month_in_deadline
+            ? $deadline->format('Y-m')
+            : $deadline->copy()->startOfMonth()->subMonthNoOverflow()->format('Y-m');
+    }
+
+    private function dateLabel(Carbon $date): string
     {
         $names = [
             1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
             7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
         ];
-        $deadline = Carbon::createFromFormat('!Y-m', config('qurma.deadline_month'));
 
-        return $names[$deadline->month] . ' ' . $deadline->year;
+        return $date->day . ' ' . $names[$date->month] . ' ' . $date->year;
+    }
+
+    /** Batas pelunasan dalam teks, misalnya "7 Mei 2027". */
+    public function deadlineLabel(): string
+    {
+        return $this->dateLabel($this->payoffDeadline());
+    }
+
+    public function registrationDeadlineLabel(): string
+    {
+        return $this->dateLabel($this->registrationDeadline());
     }
 
     /** Tenor maksimal agar cicilan terakhir tidak melewati batas pelunasan. 0 = bulan mulai sudah lewat batas. */
     public function maxTenor(string $startMonth): int
     {
-        $start    = Carbon::createFromFormat('!Y-m', $startMonth);
-        $deadline = Carbon::createFromFormat('!Y-m', config('qurma.deadline_month'));
+        $start = Carbon::createFromFormat('!Y-m', $startMonth);
+        $last  = Carbon::createFromFormat('!Y-m', $this->lastInstallmentMonth());
 
-        $months = ($deadline->year - $start->year) * 12 + ($deadline->month - $start->month) + 1;
+        $months = ($last->year - $start->year) * 12 + ($last->month - $start->month) + 1;
 
         return max(0, min(12, $months));
     }
@@ -62,6 +101,20 @@ class SavingCalculator
         return ($max >= 1 && $tenor > $max)
             ? "Lama menabung maksimal {$max} bulan agar lunas paling lambat " . $this->deadlineLabel()
             : null;
+    }
+
+    // ---------- Hitungan setoran ----------
+
+    public function monthlyAmount(int $target, int $tenor): int
+    {
+        $rounding = (int) config('qurma.rounding', 5000);
+
+        return (int) (ceil($target / $tenor / $rounding) * $rounding);
+    }
+
+    public function lastInstallment(int $target, int $tenor): int
+    {
+        return max(0, $target - $this->monthlyAmount($target, $tenor) * ($tenor - 1));
     }
 
     /** Jadwal setoran per bulan, total setoran dialokasikan berurutan dari cicilan pertama. */
